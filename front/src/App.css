@@ -170,6 +170,32 @@ h1 {
     transform 160ms ease;
 }
 
+.selector-grupo {
+  position: absolute;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #ffffffcc;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.selector-grupo select {
+  background: #333333b0;
+  border: 1px solid #ffffff50;
+  border-radius: 9999px;
+  color: #ffffff;
+  font: inherit;
+  padding: 6px 10px;
+  text-transform: none;
+}
+
+.selector-grupo option {
+  color: #333333;
+}
+
 .boton-nuevo:hover {
   background: #333333;
 }
@@ -382,6 +408,14 @@ h1 {
   color: #cccccc;
   font-size: 0.72rem;
   margin-bottom: 0;
+}
+
+.tiempo-espera {
+  color: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 600;
+  grid-column: 2 / 4;
+  margin: -5px 0 0;
 }
 
 .tarjeta-pedido time {

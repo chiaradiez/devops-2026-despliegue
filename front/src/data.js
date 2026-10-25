@@ -31,7 +31,7 @@ async function solicitar(path, options = {}) {
     throw new Error(
       body.error?.message || "No se pudo completar la operación.",
     );
-  return body.data;
+  return body.data ?? body;
 }
 
 function adaptarPedido(order) {
@@ -41,10 +41,13 @@ function adaptarPedido(order) {
     nombre: order.items
       .map((item) => `${item.quantity} × ${item.name}`)
       .join(", "),
-    hora: new Date(order.createdAt).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
+    hora: Number.isFinite(Date.parse(order.createdAt))
+      ? new Date(order.createdAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "—",
+    creadoEn: Number.isFinite(Date.parse(order.createdAt)) ? Date.parse(order.createdAt) : null,
     estado: Object.keys(estados).find((key) => estados[key] === order.status),
   };
 }
@@ -86,4 +89,8 @@ export async function cambiarEstadoPedido(pedido, nuevoEstado) {
 
 export async function obtenerReplicaApi() {
   return solicitar("/replica");
+}
+
+export async function obtenerFeatureFlags(group) {
+  return solicitar(`/feature-flags?group=${encodeURIComponent(group)}`);
 }

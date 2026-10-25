@@ -12,6 +12,7 @@ import {
   obtenerPedidosIniciales,
   obtenerPedidos,
   obtenerReplicaApi,
+  obtenerFeatureFlags,
 } from "./data";
 import coffeeIcon from "./assets/coffee.svg";
 
@@ -33,6 +34,20 @@ function obtenerReplicaInfo() {
   return { raw, numero };
 }
 
+function obtenerGrupoInicial() {
+  const permitido = (grupo) => grupo === "beta" || grupo === "control";
+  const deUrl = new URLSearchParams(window.location.search).get("group");
+  if (permitido(deUrl)) {
+    window.localStorage.setItem("coffeequeue-demo-group", deUrl);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("group");
+    window.history.replaceState(null, "", url);
+    return deUrl;
+  }
+  const guardado = window.localStorage.getItem("coffeequeue-demo-group");
+  return permitido(guardado) ? guardado : "control";
+}
+
 function App() {
   const [pedidos, establecerPedidos] = useState(obtenerPedidosIniciales);
   const [pedidoArrastrado, establecerPedidoArrastrado] = useState(null);
@@ -40,6 +55,9 @@ function App() {
   const [ocupado, establecerOcupado] = useState(true);
   const [mostrarFormulario, establecerMostrarFormulario] = useState(false);
   const [replicaApiInfo, establecerReplicaApiInfo] = useState(null);
+  const [grupoDemo, establecerGrupoDemo] = useState(obtenerGrupoInicial);
+  const [mostrarTiempoEspera, establecerMostrarTiempoEspera] = useState(false);
+  const [ahora, establecerAhora] = useState(0);
   const operacionEnCurso = useRef(false);
 
   useEffect(() => {
@@ -66,6 +84,40 @@ function App() {
       activo = false;
     };
   }, []);
+
+  useEffect(() => {
+    let activo = true;
+    const consultarFlag = () => obtenerFeatureFlags(grupoDemo)
+      .then((resultado) => {
+        if (activo) establecerMostrarTiempoEspera(resultado.flags?.show_order_wait_time === true);
+      })
+      .catch(() => {
+        if (activo) establecerMostrarTiempoEspera(false);
+      });
+
+    consultarFlag();
+    const intervaloFlag = window.setInterval(consultarFlag, 4000);
+    return () => {
+      activo = false;
+      window.clearInterval(intervaloFlag);
+    };
+  }, [grupoDemo]);
+
+  useEffect(() => {
+    const inicioReloj = window.setTimeout(() => establecerAhora(Date.now()), 0);
+    const intervaloReloj = window.setInterval(() => establecerAhora(Date.now()), 60_000);
+    return () => {
+      window.clearTimeout(inicioReloj);
+      window.clearInterval(intervaloReloj);
+    };
+  }, []);
+
+  function cambiarGrupoDemo(evento) {
+    const grupo = evento.target.value;
+    establecerGrupoDemo(grupo);
+    window.localStorage.setItem("coffeequeue-demo-group", grupo);
+    establecerMostrarTiempoEspera(false);
+  }
 
   function abrirFormulario() {
     if (ocupado || operacionEnCurso.current) return;
@@ -172,6 +224,13 @@ function App() {
           <div className="encabezado-titulo">
             <h1>coffee.dev</h1>
           </div>
+          <label className="selector-grupo">
+            <span>Grupo demo</span>
+            <select aria-label="Grupo de prueba" value={grupoDemo} onChange={cambiarGrupoDemo}>
+              <option value="control">Control</option>
+              <option value="beta">Beta</option>
+            </select>
+          </label>
           <button
             className="boton-nuevo"
             type="button"
@@ -200,6 +259,8 @@ function App() {
               key={columna.clave}
               pedidos={pedidos[columna.clave]}
               titulo={columna.titulo}
+              mostrarTiempoEspera={mostrarTiempoEspera}
+              ahora={ahora}
             />
           ))}
         </section>
@@ -227,7 +288,12 @@ function App() {
 
       <DragOverlay dropAnimation={{ duration: 180, easing: "ease-out" }}>
         {pedidoArrastrado && (
-          <TarjetaPedidoVisual esOverlay pedido={pedidoArrastrado.pedido} />
+          <TarjetaPedidoVisual
+            esOverlay
+            pedido={pedidoArrastrado.pedido}
+            mostrarTiempoEspera={mostrarTiempoEspera}
+            ahora={ahora}
+          />
         )}
       </DragOverlay>
     </DragDropProvider>
@@ -418,7 +484,7 @@ function FormularioPedido({ enCurso, onCancelar, onGuardar }) {
   );
 }
 
-function Columna({ clave, color, estaEnOrigen, pedidos, titulo }) {
+function Columna({ clave, color, estaEnOrigen, pedidos, titulo, mostrarTiempoEspera, ahora }) {
   const { isDropTarget, ref } = useDroppable({ id: clave });
 
   return (
@@ -440,6 +506,8 @@ function Columna({ clave, color, estaEnOrigen, pedidos, titulo }) {
             columnaActual={clave}
             key={pedido.id}
             pedido={pedido}
+            mostrarTiempoEspera={mostrarTiempoEspera}
+            ahora={ahora}
           />
         ))}
 
@@ -451,7 +519,7 @@ function Columna({ clave, color, estaEnOrigen, pedidos, titulo }) {
   );
 }
 
-function TarjetaPedido({ columnaActual, esOverlay = false, pedido }) {
+function TarjetaPedido({ columnaActual, esOverlay = false, pedido, mostrarTiempoEspera, ahora }) {
   const { isDragSource, ref } = useDraggable({
     data: { columnaActual, pedido },
     id: `pedido-${pedido.id}`,
@@ -463,11 +531,13 @@ function TarjetaPedido({ columnaActual, esOverlay = false, pedido }) {
       esOverlay={esOverlay}
       elementRef={ref}
       pedido={pedido}
+      mostrarTiempoEspera={mostrarTiempoEspera}
+      ahora={ahora}
     />
   );
 }
 
-function TarjetaPedidoVisual({ elementRef, esArrastrada, esOverlay, pedido }) {
+function TarjetaPedidoVisual({ elementRef, esArrastrada, esOverlay, pedido, mostrarTiempoEspera = false, ahora = 0 }) {
   return (
     <article
       aria-label={`Pedido ${pedido.nombre}, número ${pedido.id}`}
@@ -480,6 +550,13 @@ function TarjetaPedidoVisual({ elementRef, esArrastrada, esOverlay, pedido }) {
         <p>Pedido #{pedido.id}</p>
       </div>
       <time>{pedido.hora}</time>
+      {mostrarTiempoEspera && (
+        <p className="tiempo-espera">
+          Tiempo de espera: {pedido.creadoEn === null
+            ? "Tiempo no disponible"
+            : `${Math.max(0, Math.floor((ahora - pedido.creadoEn) / 60_000))} minutos`}
+        </p>
+      )}
     </article>
   );
 }
