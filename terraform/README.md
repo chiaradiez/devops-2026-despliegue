@@ -1,10 +1,10 @@
 # Infraestructura como Código (IaC) — CoffeeQueue
 
-Este directorio contiene la implementación de **Infraestructura como Código (IaC)** para el proyecto **CoffeeQueue**, correspondiente a la **Consigna 16** y el rol de **Integrante 3** del trabajo práctico de DevOps.
+Este directorio contiene la implementación de **Infraestructura como Código (IaC)** para el proyecto **CoffeeQueue**
 
 ---
 
-## 📋 Consigna y Objetivos (Integrante 3)
+## 📋 Consigna y Objetivos
 
 > **Pregunta disparadora**: *¿Cómo crear y reproducir un entorno sin configuraciones manuales?*
 > 
