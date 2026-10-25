@@ -37,3 +37,57 @@ test('endpoint /api/replica devuelve numero y hostname de la replica', async (t)
   assert.ok(body.data.numero >= 100 && body.data.numero <= 999);
   assert.ok(typeof body.data.hostname === 'string' && body.data.hostname.length > 0);
 });
+
+test('Feature Flag consulta beta y control, y la administración exige token', async (t) => {
+  const originalToken = process.env.FEATURE_FLAGS_ADMIN_TOKEN;
+  process.env.FEATURE_FLAGS_ADMIN_TOKEN = 'token-local-de-prueba';
+  const flags = new Map();
+  const redis = {
+    get: async (key) => flags.get(key) ?? null,
+    set: async (key, value) => { flags.set(key, value); },
+  };
+  const server = createApp(redis).listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  t.after(() => {
+    if (originalToken === undefined) delete process.env.FEATURE_FLAGS_ADMIN_TOKEN;
+    else process.env.FEATURE_FLAGS_ADMIN_TOKEN = originalToken;
+    return new Promise((resolve) => server.close(resolve));
+  });
+  const base = `http://127.0.0.1:${server.address().port}`;
+
+  const control = await fetch(`${base}/api/feature-flags?group=control`);
+  assert.deepEqual(await control.json(), { group: 'control', flags: { show_order_wait_time: false } });
+  const betaDefault = await fetch(`${base}/api/feature-flags?group=beta`);
+  assert.deepEqual(await betaDefault.json(), { group: 'beta', flags: { show_order_wait_time: false } });
+
+  const denied = await fetch(`${base}/api/admin/feature-flags/show_order_wait_time`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ group: 'beta', enabled: true }),
+  });
+  assert.equal(denied.status, 403);
+
+  const enabled = await fetch(`${base}/api/admin/feature-flags/show_order_wait_time`, {
+    method: 'PATCH', headers: {
+      'Content-Type': 'application/json', Authorization: 'Bearer token-local-de-prueba',
+    }, body: JSON.stringify({ group: 'beta', enabled: true }),
+  });
+  assert.equal(enabled.status, 200);
+  assert.equal(flags.get('feature-flags:show_order_wait_time:beta'), 'true');
+  assert.deepEqual(await (await fetch(`${base}/api/feature-flags?group=beta`)).json(), {
+    group: 'beta', flags: { show_order_wait_time: true },
+  });
+  assert.deepEqual(await (await fetch(`${base}/api/feature-flags?group=control`)).json(), {
+    group: 'control', flags: { show_order_wait_time: false },
+  });
+
+  const disabled = await fetch(`${base}/api/admin/feature-flags/show_order_wait_time`, {
+    method: 'PATCH', headers: {
+      'Content-Type': 'application/json', Authorization: 'Bearer token-local-de-prueba',
+    }, body: JSON.stringify({ group: 'beta', enabled: false }),
+  });
+  assert.equal(disabled.status, 200);
+  assert.equal(flags.get('feature-flags:show_order_wait_time:beta'), 'false');
+  assert.deepEqual(await (await fetch(`${base}/api/feature-flags?group=beta`)).json(), {
+    group: 'beta', flags: { show_order_wait_time: false },
+  });
+});

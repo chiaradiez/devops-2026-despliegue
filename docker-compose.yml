@@ -30,6 +30,7 @@ services:
       - REDIS_PORT=6379
       - REDIS_DB=0
       - PORT=3000
+      - FEATURE_FLAGS_ADMIN_TOKEN=${FEATURE_FLAGS_ADMIN_TOKEN:-}
     depends_on:
       - redis
     networks:
