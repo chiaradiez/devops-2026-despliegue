@@ -1,0 +1,27 @@
+# ==============================================================================
+# Variables de ejemplo para la infraestructura de CoffeeQueue
+# Copiar este archivo a terraform.tfvars para personalizar valores locales:
+#   cp terraform.tfvars.example terraform.tfvars
+# ==============================================================================
+
+# Entorno de despliegue (se añade como sufijo a los nombres de contenedores y redes)
+environment = "dev"
+
+# Puerto externo en el host para el Reverse Proxy Nginx
+# (Modificar este valor a 8081 para la demostración de cambio de propiedad de la Consigna 16)
+nginx_external_port = 8080
+
+# Estrategia de imágenes:
+# true  -> Descarga las imágenes preconstruidas desde el Container Registry
+# false -> Compila localmente desde los directorios ../api y ../front
+use_remote_images = true
+
+# Nombres y tags de imágenes
+image_api   = "ghcr.io/tomas-lp/devops-2026-tp1/coffeequeue-api:latest"
+image_front = "ghcr.io/tomas-lp/devops-2026-tp1/coffeequeue-front:latest"
+image_nginx = "nginx:alpine"
+image_redis = "redis:alpine"
+
+# Puerto interno de la API y base lógica de Redis
+api_internal_port = 3000
+redis_db          = 0

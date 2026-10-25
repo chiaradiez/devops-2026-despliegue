@@ -4,3 +4,13 @@ node_modules/
 !.env.example
 coverage/
 *.log
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+!terraform.tfvars.example
