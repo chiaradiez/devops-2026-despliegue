@@ -60,7 +60,7 @@ body {
 }
 
 body::before {
-  background-image: url("https://www.krion.com/uploads/tmp/paredes_de_cafeteria_selva.jpg");
+  background-image: url("./assets/bg.webp");
   background-position: center;
   background-size: cover;
   content: "";
