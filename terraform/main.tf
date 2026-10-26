@@ -56,10 +56,11 @@ resource "docker_image" "front_local" {
 
 # ── Contenedor: Redis ─────────────────────────────────────────────────
 resource "docker_container" "redis" {
-  name    = "coffeequeue-redis-${var.environment}"
-  image   = docker_image.redis.image_id
-  command = ["redis-server", "--protected-mode", "no"]
-  restart = "unless-stopped"
+  name         = "coffeequeue-redis-${var.environment}"
+  image        = docker_image.redis.image_id
+  command      = ["redis-server", "--protected-mode", "no"]
+  restart      = "unless-stopped"
+  network_mode = "bridge"
 
   networks_advanced {
     name    = docker_network.coffeequeue_net.name
@@ -74,9 +75,10 @@ resource "docker_container" "redis" {
 
 # ── Contenedor: API REST ──────────────────────────────────────────────
 resource "docker_container" "api" {
-  name    = "coffeequeue-api-${var.environment}"
-  image   = local.api_image_id
-  restart = "unless-stopped"
+  name         = "coffeequeue-api-${var.environment}"
+  image        = local.api_image_id
+  restart      = "unless-stopped"
+  network_mode = "bridge"
 
   env = [
     "REDIS_HOST=redis",
@@ -97,9 +99,10 @@ resource "docker_container" "api" {
 
 # ── Contenedor: Frontend React ────────────────────────────────────────
 resource "docker_container" "front" {
-  name    = "coffeequeue-front-${var.environment}"
-  image   = local.front_image_id
-  restart = "unless-stopped"
+  name         = "coffeequeue-front-${var.environment}"
+  image        = local.front_image_id
+  restart      = "unless-stopped"
+  network_mode = "bridge"
 
   networks_advanced {
     name    = docker_network.coffeequeue_net.name
@@ -109,9 +112,10 @@ resource "docker_container" "front" {
 
 # ── Contenedor: Nginx Reverse Proxy (Gateway) ─────────────────────────
 resource "docker_container" "nginx" {
-  name    = "coffeequeue-nginx-${var.environment}"
-  image   = docker_image.nginx.image_id
-  restart = "unless-stopped"
+  name         = "coffeequeue-nginx-${var.environment}"
+  image        = docker_image.nginx.image_id
+  restart      = "unless-stopped"
+  network_mode = "bridge"
 
   ports {
     internal = 80
