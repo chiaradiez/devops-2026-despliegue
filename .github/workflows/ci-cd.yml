@@ -3,8 +3,16 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - "terraform/**"
+      - ".github/workflows/infra.yml"
+      - "**.md"
   pull_request:
     branches: [ "main" ]
+    paths-ignore:
+      - "terraform/**"
+      - ".github/workflows/infra.yml"
+      - "**.md"
   workflow_dispatch:
 
 env:
@@ -135,32 +143,47 @@ jobs:
           labels: ${{ steps.meta-nginx.outputs.labels }}
 
   # -------------------------------------------------------------
-  # Job 3: Trigger Deploy en Cloud (Render)
+  # Job 3: Trigger Deploy en Cloud (Render API Oficial)
   # -------------------------------------------------------------
   deploy:
-    name: Trigger Cloud Deployment
+    name: Trigger Cloud Deployment (Render API)
     needs: build-and-push
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Trigger Render Deploy Hook (API)
-        if: env.RENDER_API_HOOK != ''
+      - name: Trigger Deploy via Render Official API
         env:
-          RENDER_API_HOOK: ${{ secrets.RENDER_API_DEPLOY_HOOK }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          ENV_NAME: prod
         run: |
-          curl -X POST "$RENDER_API_HOOK"
+          if [ -z "$RENDER_API_KEY" ]; then
+            echo "::warning ::RENDER_API_KEY no configurado. Saltando despliegue automático."
+            exit 0
+          fi
 
-      - name: Trigger Render Deploy Hook (Frontend)
-        if: env.RENDER_FRONT_HOOK != ''
-        env:
-          RENDER_FRONT_HOOK: ${{ secrets.RENDER_FRONT_DEPLOY_HOOK }}
-        run: |
-          curl -X POST "$RENDER_FRONT_HOOK"
+          echo "🔍 Consultando servicios en Render..."
+          SERVICES_JSON=$(curl -s -f -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/services?limit=50")
 
-      - name: Trigger Render Deploy Hook (NGINX)
-        if: env.RENDER_NGINX_HOOK != ''
-        env:
-          RENDER_NGINX_HOOK: ${{ secrets.RENDER_NGINX_DEPLOY_HOOK }}
-        run: |
-          curl -X POST "$RENDER_NGINX_HOOK"
+          SERVICES_TO_DEPLOY=(
+            "coffeequeue-api-${ENV_NAME}"
+            "coffeequeue-front-${ENV_NAME}"
+            "coffeequeue-nginx-${ENV_NAME}"
+          )
+
+          for SVC_NAME in "${SERVICES_TO_DEPLOY[@]}"; do
+            SVC_ID=$(echo "$SERVICES_JSON" | jq -r ".[] | select(.service.name == \"$SVC_NAME\") | .service.id")
+
+            if [ -n "$SVC_ID" ] && [ "$SVC_ID" != "null" ]; then
+              echo "🚀 Disparando despliegue para $SVC_NAME ($SVC_ID)..."
+              RESPONSE=$(curl -s -f -X POST "https://api.render.com/v1/services/$SVC_ID/deploys" \
+                -H "Authorization: Bearer $RENDER_API_KEY" \
+                -H "Accept: application/json" \
+                -H "Content-Type: application/json" \
+                -d '{"clearCache": "do_not_clear"}')
+              DEPLOY_ID=$(echo "$RESPONSE" | jq -r '.id // "ok"')
+              echo "✅ Despliegue iniciado con éxito ($DEPLOY_ID)."
+            else
+              echo "⚠️ No se encontró el servicio '$SVC_NAME' en Render. Verifica que infra.yml lo haya creado primero."
+            fi
+          done
