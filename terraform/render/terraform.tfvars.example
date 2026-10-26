@@ -1,0 +1,7 @@
+environment   = "prod"
+render_region = "oregon"
+service_plan  = "starter"
+
+image_api   = "ghcr.io/tomas-lp/devops-2026-tp1/coffeequeue-api:latest"
+image_front = "ghcr.io/tomas-lp/devops-2026-tp1/coffeequeue-front:latest"
+image_nginx = "ghcr.io/tomas-lp/devops-2026-tp1/coffeequeue-nginx:latest"
