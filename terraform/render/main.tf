@@ -1,19 +1,20 @@
 # ── 1. Proyecto en Render para agrupar recursos ───────────────────────
 resource "render_project" "coffeequeue" {
   name = "coffeequeue-${var.environment}"
-  environments = [
-    {
+  environments = {
+    "${var.environment}" = {
       name             = var.environment
       protected_status = "unprotected"
     }
-  ]
+  }
 }
 
 # ── 2. Base de datos Redis administrada ────────────────────────────────
 resource "render_redis" "redis" {
-  name   = "coffeequeue-redis-${var.environment}"
-  plan   = "free"
-  region = var.render_region
+  name              = "coffeequeue-redis-${var.environment}"
+  plan              = "free"
+  region            = var.render_region
+  max_memory_policy = "noeviction"
 
   ip_allow_list = [
     {
