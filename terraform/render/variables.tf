@@ -17,19 +17,25 @@ variable "service_plan" {
 }
 
 variable "image_api" {
-  description = "URL de la imagen en GHCR para la API REST"
+  description = "URL de la imagen en GHCR para la API REST (sin tag)"
   type        = string
-  default     = "ghcr.io/tomas-lp/devops-2026-tp1/coffeequeue-api:latest"
+  default     = "ghcr.io/tomas-lp/devops-2026-tp1/coffeequeue-api"
 }
 
 variable "image_front" {
-  description = "URL de la imagen en GHCR para el Frontend"
+  description = "URL de la imagen en GHCR para el Frontend (sin tag)"
   type        = string
-  default     = "ghcr.io/tomas-lp/devops-2026-tp1/coffeequeue-front:latest"
+  default     = "ghcr.io/tomas-lp/devops-2026-tp1/coffeequeue-front"
 }
 
 variable "image_nginx" {
-  description = "URL de la imagen en GHCR para el Reverse Proxy Nginx"
+  description = "URL de la imagen en GHCR para el Reverse Proxy Nginx (sin tag)"
   type        = string
-  default     = "ghcr.io/tomas-lp/devops-2026-tp1/coffeequeue-nginx:latest"
+  default     = "ghcr.io/tomas-lp/devops-2026-tp1/coffeequeue-nginx"
+}
+
+variable "image_tag" {
+  description = "Tag de las imágenes a desplegar (ej. latest o un SHA corto)"
+  type        = string
+  default     = "latest"
 }

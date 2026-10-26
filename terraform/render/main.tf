@@ -33,6 +33,7 @@ resource "render_web_service" "api" {
   runtime_source = {
     image = {
       image_url = var.image_api
+      tag       = var.image_tag
     }
   }
 
@@ -55,6 +56,7 @@ resource "render_web_service" "front" {
   runtime_source = {
     image = {
       image_url = var.image_front
+      tag       = var.image_tag
     }
   }
 }
@@ -68,6 +70,7 @@ resource "render_web_service" "nginx" {
   runtime_source = {
     image = {
       image_url = var.image_nginx
+      tag       = var.image_tag
     }
   }
 
